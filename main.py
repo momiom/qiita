@@ -2,10 +2,19 @@ import requests
 import json
 from collections import OrderedDict
 from functools import partial
+from datetime import datetime, timedelta
 
 HOST = 'https://qiita.com'
 
 json_loads = partial(json.loads, object_pairs_hook=OrderedDict)
+
+
+start = datetime.strptime('201201', '%Y%m')
+end = datetime.strptime('201202', '%Y%m')
+
+def daterange(start_date, end_date):
+    for n in range((end_date - start_date).days + 1):
+        yield start_date + timedelta(n)
 
 
 def get_tags():
@@ -21,6 +30,16 @@ def get_tags():
     else:
         return response
 
+
+def get_items(yyyymm, page=1, per_page=100):
+    print('fetching yyyymm:{} page:{}'.format(yyyymm, page), file=sys.stderr)
+    r = c.list_items(
+        params={
+            'page': page,
+            'per_page': per_page,
+            'query': 'created:{}'.format(yyyymm),
+        })
+    return r
 
 tags = get_tags()
 with open('./tags.json', mode='w', encoding='utf-8') as f:
