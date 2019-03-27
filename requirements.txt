@@ -1,3 +1,4 @@
+python-dateutil
 certifi==2019.3.9
 chardet==3.0.4
 idna==2.8
