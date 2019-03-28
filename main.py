@@ -8,6 +8,7 @@ from time import sleep
 from dateutil.relativedelta import relativedelta
 
 HOST = 'https://qiita.com'
+TOKEN = '3973ea4379d9c87d5d8752c239ced72d1bc00791'
 
 json_loads = partial(json.loads, object_pairs_hook=OrderedDict)
 
