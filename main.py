@@ -1,3 +1,5 @@
+import os
+
 import requests
 import json
 from collections import OrderedDict
@@ -30,7 +32,13 @@ def req_get(url, payload):
 
 
 def month_span(start_date, end_date):
-    """start_date、end_dateの期間に含まれる月毎のdatetimeオブジェクトを返すジェネレータ
+    """
+    start_date ~ end_dateのYYYYMMのdatetimeオブジェクトを返すジェネレータ
+
+    :param start_date: datetime
+    :param end_date: datetime
+
+    :return datetime
     """
     yield start_date
     while(start_date.year != end_date.year or
@@ -41,7 +49,7 @@ def month_span(start_date, end_date):
 
 def get_items_per_month(yyyymm, page=1, per_page=100):
     print('Fetching items per month...')
-    print('Target: {}'.format(yyyymm))
+    print(f'Target: {yyyymm}')
     uri = '/api/v2/items'
 
     # 期間の設定
@@ -54,46 +62,46 @@ def get_items_per_month(yyyymm, page=1, per_page=100):
     payload = {
         'page': page,
         'per_page': per_page,
-        'query': 'created:>{}+created:<{}'.format(st, ed)
+        'query': f'created:>{st}+created:<{ed}'
     }
-    payload_str = '&'.join('{}={}'.format(k, v) for k, v in payload.items())
+    payload_str = '&'.join(f'{k}={v}' for k, v in payload.items())
 
     response = req_get(url=HOST+uri, payload=payload_str)
-    print('First URL: {}'.format(response.url))
+    print(f'First URL: {response.url}')
 
     total_count = int(response.headers['Total-Count'])
-    print('total_count: {}'.format(total_count))
+    print(f'total_count: {total_count}')
 
     quotient, remainder = divmod(total_count, per_page)
-    print('quotient: {}, remainder: {}'.format(quotient, remainder))
+    print(f'quotient: {quotient}, remainder: {remainder}')
 
     max_page_count = quotient if remainder == 0 else quotient + 1
-    print('Max page count: {}'.format(max_page_count))
+    print(f'Max page count: {max_page_count}')
 
     monthly_items = []
     for page in range(1, max_page_count + 1):
-        if page > 1:
-            break
         payload = {
             'page': page,
             'per_page': per_page,
-            'query': 'created:>{}+created:<{}'.format(st, ed)
+            'query': f'created:>{st}+created:<{ed}'
         }
-        payload_str = '&'.join('{}={}'.format(k, v) for k, v in payload.items())
+        payload_str = '&'.join(f'{k}={v}' for k, v in payload.items())
         response = req_get(url=HOST + uri, payload=payload_str)
         data = json_loads(response.text)
         monthly_items.extend(data)
 
-    print('Final URL: {}'.format(response.url))
+    print(f'Final URL: {response.url}')
     print('Done.\n')
     return monthly_items
 
 
 # main
-start = datetime.strptime('2019-01', '%Y-%m')
-end = datetime.strptime('2019-03', '%Y-%m')
+start = datetime.strptime('2020-01', '%Y-%m')
+end = datetime.strptime('2020-03', '%Y-%m')
 
 for date in month_span(start, end):
-    items = get_items_per_month(date.strftime('%Y-%m'), per_page=1)
-    with open('./items_{}.json'.format(date.strftime('%Y-%m')), mode='w', encoding='utf-8') as f:
+    curr_date = date.strftime('%Y-%m')
+    items = get_items_per_month(curr_date, per_page=100)
+    os.makedirs('data', exist_ok=True)
+    with open(f'./data/items_{curr_date}.json', mode='w', encoding='utf-8') as f:
         json.dump(items, f, ensure_ascii=False, indent=4)
