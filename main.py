@@ -1,3 +1,4 @@
+import math
 import os
 
 import requests
@@ -47,6 +48,23 @@ def month_span(start_date, end_date):
         yield start_date
 
 
+def progress_bar(progress, total=100):
+    prog = progress / total * 100
+    prog_bar = f'{"=" * math.ceil(prog)}>'
+    print(f'\r[{prog_bar:100}] {prog :.3f}%', end='')
+    if math.ceil(prog) >= 100:
+        print()
+
+
+def notify(message, mention=False):
+    url = 'https://hooks.slack.com/services/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'
+    headers = {'content-type': 'application/json'}
+    payload = {
+        'text': f'<@UCLAPNDCJ> {message}' if mention else f'{message}'
+    }
+    requests.post(url, data=json.dumps(payload), headers=headers)
+
+
 def get_items_per_month(yyyymm, page=1, per_page=100):
     print('Fetching items per month...')
     print(f'Target: {yyyymm}')
@@ -80,6 +98,9 @@ def get_items_per_month(yyyymm, page=1, per_page=100):
 
     monthly_items = []
     for page in range(1, max_page_count + 1):
+        if page > 5:
+            break
+
         payload = {
             'page': page,
             'per_page': per_page,
@@ -89,8 +110,9 @@ def get_items_per_month(yyyymm, page=1, per_page=100):
         response = req_get(url=HOST + uri, payload=payload_str)
         data = json_loads(response.text)
         monthly_items.extend(data)
+        progress_bar(page * per_page, total=total_count)
 
-    print(f'Final URL: {response.url}')
+    print(f'Last URL: {response.url}')
     print('Done.\n')
     return monthly_items
 
@@ -99,9 +121,16 @@ def get_items_per_month(yyyymm, page=1, per_page=100):
 start = datetime.strptime('2020-01', '%Y-%m')
 end = datetime.strptime('2020-03', '%Y-%m')
 
-for date in month_span(start, end):
-    curr_date = date.strftime('%Y-%m')
-    items = get_items_per_month(curr_date, per_page=100)
-    os.makedirs('data', exist_ok=True)
-    with open(f'./data/items_{curr_date}.json', mode='w', encoding='utf-8') as f:
-        json.dump(items, f, ensure_ascii=False, indent=4)
+notify(f'START\nFrom: {start}\nTo:   {end}')
+try:
+    for date in month_span(start, end):
+        curr_date = date.strftime('%Y-%m')
+        items = get_items_per_month(curr_date, per_page=1)
+        os.makedirs('data', exist_ok=True)
+        with open(f'./data/items_{curr_date}.json', mode='w', encoding='utf-8') as f:
+            json.dump(items, f, ensure_ascii=False, indent=4)
+        notify(f'{curr_date}  Count: {len(items)}\n')
+    notify('Done!')
+except Exception as e:
+    notify(str(e), True)
+    raise

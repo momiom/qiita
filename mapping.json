@@ -1,0 +1,33 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "my_ja_analyzer": {
+          "type": "custom",
+          "tokenizer": "kuromoji_tokenizer",
+          "char_filter": [
+            "icu_normalizer",
+            "kuromoji_iteration_mark"
+          ],
+          "filter": [
+            "kuromoji_baseform",
+            "kuromoji_part_of_speech",
+            "ja_stop",
+            "kuromoji_stemmer"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "_doc": {
+      "properties": {
+        "content": {
+          "search_analyzer": "my_ja_analyzer",
+          "analyzer": "my_ja_analyzer",
+          "type": "text"
+        }
+      }
+    }
+  }
+}
