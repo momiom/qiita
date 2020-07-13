@@ -2,7 +2,7 @@
   "settings": {
     "analysis": {
       "analyzer": {
-        "my_ja_analyzer": {
+        "ja_analyzer": {
           "type": "custom",
           "tokenizer": "kuromoji_tokenizer",
           "char_filter": [
@@ -15,17 +15,6 @@
             "ja_stop",
             "kuromoji_stemmer"
           ]
-        }
-      }
-    }
-  },
-  "mappings": {
-    "_doc": {
-      "properties": {
-        "content": {
-          "search_analyzer": "my_ja_analyzer",
-          "analyzer": "my_ja_analyzer",
-          "type": "text"
         }
       }
     }
