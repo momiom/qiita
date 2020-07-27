@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from time import sleep
 from tqdm import tqdm
 import settings
+from notify import notify
 
 from dateutil.relativedelta import relativedelta
 
@@ -46,15 +47,6 @@ def month_span(start_date, end_date):
           start_date.month != end_date.month):
         start_date = start_date + relativedelta(months=1)
         yield start_date
-
-
-def notify(message, mention=False):
-    url = settings.slack_webhook_url
-    headers = {'content-type': 'application/json'}
-    payload = {
-        'text': f'<@UCLAPNDCJ> {message}' if mention else f'{message}'
-    }
-    requests.post(url, data=json.dumps(payload), headers=headers)
 
 
 def get_items_per_month(yyyymm, page=1, max_page=float('inf'), per_page=100):
