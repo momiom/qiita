@@ -76,7 +76,7 @@ def sentence_generator():
 
 
 def main():
-    data_path = path.join(settings.sentences_data_dir, 'sentences.cor')
+    data_path = path.join(settings.sentences_data_dir, settings.sentences_data_name)
     makedirs(settings.sentences_data_dir, exist_ok=True)
 
     with open(data_path, mode='w', encoding='utf-8') as f:
