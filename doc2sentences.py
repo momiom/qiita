@@ -1,8 +1,9 @@
 import json
 from glob import glob
-from pyknp import Juman
+# from pyknp import Juman
 import settings
 from os import path, makedirs
+import subprocess
 
 
 def load_data():
@@ -19,13 +20,15 @@ def load_data():
 
 def split_into_words(text):
     #  4096バイト以下の文字列になるまで分割する
+    text_len = len(text.encode('utf-8'))
+    print(f'len(): {text_len}')
     _list = [text]
     br = False
     while True:
         if br:
             break
         for t in _list:
-            if not len(t.encode('utf-8')) > 4096:
+            if not len(t.encode('utf-8')) > 4000:
                 br = True
                 break
             # 過去の分割は捨てる
@@ -37,12 +40,15 @@ def split_into_words(text):
     results = []
     if len(_list) > 1:
         for t in _list[1:]:
-            results.append(Juman().analysis(t))
-        result = ''
+            cmd = subprocess.run(f'echo {t}| jumanpp', encoding='utf-8', stdout=subprocess.PIPE, shell=True)
+            res = [r.split()[0] for r in cmd.stdout.splitlines()]
+            results.append(res)
+        result = []
         for r in results:
-            result = [mrph.midasi for mrph in r.mrph_list()]
+            result.extend(r[:-1])
     else:
-        result = [mrph.midasi for mrph in Juman().analysis(_list[0])]
+        cmd = subprocess.run(f'echo {_list[0]}| jumanpp', encoding='utf-8', stdout=subprocess.PIPE, shell=True)
+        result = [r.split()[0] for r in cmd.stdout.splitlines()][:-1]
     return result
 
 
@@ -55,7 +61,15 @@ def doc_to_sentence(doc):
             '"': '”',
             '@': '＠',
             '#': '＃',
-            ' ': '　'
+            ' ': '', # 半角スペース
+            '　': '', # 全角スペース
+            '<': '＜',
+            '>': '＞',
+            '|': '｜',
+            '(': '（',
+            ')': '）',
+            '&': '＆',
+            '%': '％',
         }
     )
     return split_into_words(doc)
@@ -70,7 +84,9 @@ def replace_all(input_str='', replaces=None):
 
 def sentence_generator():
     for i, doc in enumerate(load_data()):
-        print(f'\rcount: {i + 1}', end='')
+        if i > 10:
+            break
+        print(f'count: {i + 1}')
         yield ' '.join(doc_to_sentence(doc)) + '\n'
     print()
 
@@ -78,6 +94,8 @@ def sentence_generator():
 def main():
     data_path = path.join(settings.sentences_data_dir, settings.sentences_data_name)
     makedirs(settings.sentences_data_dir, exist_ok=True)
+
+    subprocess.call('chcp 65001', stdout=subprocess.PIPE, shell=True)
 
     with open(data_path, mode='w', encoding='utf-8') as f:
         f.writelines(sentence_generator())
