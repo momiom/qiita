@@ -2,8 +2,73 @@ import json
 from glob import glob
 # from pyknp import Juman
 import settings
+import os
 from os import path, makedirs
 import subprocess
+
+
+def split_into_words(text):
+    text_list = split_into_specific_byte(text)
+
+    results = []
+    for t in text_list:
+        print(f'cmd: echo "{t}"| jumanpp')
+        cmd = subprocess.run(f'echo "{t}"| jumanpp', encoding='utf-8', stdout=subprocess.PIPE, shell=True)
+        # cmd = subprocess.run(f'echo "{t}"| jumanpp', stdout=subprocess.PIPE, shell=True)
+        res = [r.split()[0] for r in cmd.stdout.decode('utf-8').splitlines()]
+        results.append(res)
+    result = []
+    for r in results:
+        result.extend(r[:-1])
+    return result
+
+
+def split_into_specific_byte(input_str, split_byte=4000):
+    print(f'input: {len(input_str.encode("utf-8"))}')
+
+    result = []
+    while True:
+        if input_str == '':
+            break
+        sample_str = input_str
+        while len(sample_str.encode('utf-8')) > split_byte:
+            sample_str = sample_str[:-1]
+        result.append(sample_str)
+        input_str = input_str[len(sample_str):]
+    return result
+
+
+def doc_to_sentence(doc):
+    doc = replace_all(
+        doc,
+        {
+            '\n': '',
+            '\'': '’',
+            '`': '｀',
+            '"': '”',
+            '@': '＠',
+            '#': '＃',
+            ' ': '',  # 半角スペース
+            '　': '',  # 全角スペース
+            '<': '＜',
+            '>': '＞',
+            '|': '｜',
+            '(': '（',
+            ')': '）',
+            '&': '＆',
+            '%': '％',
+            '\\': '＼',
+            '-': 'ー'
+        }
+    )
+    return split_into_words(doc)
+
+
+def replace_all(input_str='', replaces=None):
+    if replaces is not None:
+        for from_, to in replaces.items():
+            input_str = input_str.replace(from_, to)
+    return input_str
 
 
 def load_data():
@@ -16,70 +81,6 @@ def load_data():
             monthly_data = json.load(f)
             for data in monthly_data:
                 yield data['body']
-
-
-def split_into_words(text):
-    #  4096バイト以下の文字列になるまで分割する
-    text_len = len(text.encode('utf-8'))
-    print(f'len(): {text_len}')
-    _list = [text]
-    br = False
-    while True:
-        if br:
-            break
-        for t in _list:
-            if not len(t.encode('utf-8')) > 4000:
-                br = True
-                break
-            # 過去の分割は捨てる
-            _list = _list[:1]
-            # 適当に半分にして再度バイト数チェックに回す
-            _list.append(t[:len(t) // 2])
-            _list.append(t[len(t) // 2:])
-
-    results = []
-    if len(_list) > 1:
-        for t in _list[1:]:
-            cmd = subprocess.run(f'echo {t}| jumanpp', encoding='utf-8', stdout=subprocess.PIPE, shell=True)
-            res = [r.split()[0] for r in cmd.stdout.splitlines()]
-            results.append(res)
-        result = []
-        for r in results:
-            result.extend(r[:-1])
-    else:
-        cmd = subprocess.run(f'echo {_list[0]}| jumanpp', encoding='utf-8', stdout=subprocess.PIPE, shell=True)
-        result = [r.split()[0] for r in cmd.stdout.splitlines()][:-1]
-    return result
-
-
-def doc_to_sentence(doc):
-    doc = replace_all(
-        doc,
-        {
-            '\n': '',
-            '\'': '’',
-            '"': '”',
-            '@': '＠',
-            '#': '＃',
-            ' ': '', # 半角スペース
-            '　': '', # 全角スペース
-            '<': '＜',
-            '>': '＞',
-            '|': '｜',
-            '(': '（',
-            ')': '）',
-            '&': '＆',
-            '%': '％',
-        }
-    )
-    return split_into_words(doc)
-
-
-def replace_all(input_str='', replaces=None):
-    if replaces is not None:
-        for from_, to in replaces.items():
-            input_str = input_str.replace(from_, to)
-    return input_str
 
 
 def sentence_generator():
@@ -95,7 +96,8 @@ def main():
     data_path = path.join(settings.sentences_data_dir, settings.sentences_data_name)
     makedirs(settings.sentences_data_dir, exist_ok=True)
 
-    subprocess.call('chcp 65001', stdout=subprocess.PIPE, shell=True)
+    if os.name == 'nt':
+        subprocess.call('chcp 65001', stdout=subprocess.PIPE, shell=True)
 
     with open(data_path, mode='w', encoding='utf-8') as f:
         f.writelines(sentence_generator())
